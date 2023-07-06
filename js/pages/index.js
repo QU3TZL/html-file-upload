@@ -1,5 +1,10 @@
+import { Render } from 'render-sdk';
 import { getFileExtention, humanFileSize } from "../utils/file.js";
 import { genRandomId } from "../utils/id.js";
+
+const render = new Render({
+apiKey: 'rnd_qyWoaUjJujPmYivHOghONBdF1ySi',
+});
 
 const emptyListInfoEl = document.getElementById("file-list__empty-list-item");
 const fileListEl = document.getElementById("file-list");
@@ -7,9 +12,11 @@ const inputFileEl = document.querySelector("input[type=file]");
 const labelFileUploadEl = document.getElementById("file-upload");
 const dropZoneTextEl = document.getElementById("drop-zone__text");
 
+
+
 const dropZoneTextElTexts = {
-  over: "solta que eu pego",
-  default: "solte ou selecione um arquivo",
+  over: "drop files",
+  default: "drop or select a file",
 };
 
 inputFileEl.addEventListener("change", handleFiles);
@@ -83,15 +90,20 @@ async function handleFiles(e, dropEvent) {
     files = e.target.files;
   }
   for (const file of files) {
-    file.id = genRandomId();
-    const fileIsAnImage = file.type.startsWith("image/");
+file.id = genRandomId();
+const fileIsAnImage = file.type.startsWith('image/');
 
-    if (fileIsAnImage) {
-      const image = await getFileImage(file);
-      file.img = image;
-    }
-  }
-  updateFileList(files);
+if (fileIsAnImage) {
+ const image = await getFileImage(file);
+ file.img = image;
+}
+
+// Upload file to Render disk
+const response = await render.uploadFile(file, 'TenFold-er');
+const fileUrl = response.url;
+
+// Add the file URL to the file object
+file.url = fileUrl;
 }
 
 function handleDragOver(e) {
@@ -124,7 +136,12 @@ function updateFileListInfo() {
   }
 }
 
-window.removeFileFromList = (id) => {
-  document.getElementById(id).remove();
-  updateFileListInfo();
+window.removeFileFromList = async (id) => {
+const fileListItemEl = document.getElementById(id);
+fileListItemEl.remove();
+updateFileListInfo();
+
+// Delete file from Render disk
+await render.deleteFile('TenFold-er', id);
 };
+
